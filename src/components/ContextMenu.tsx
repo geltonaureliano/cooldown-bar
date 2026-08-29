@@ -33,7 +33,7 @@ export default function ContextMenu({ x, y, error, paused, bounds, onDock, onRef
       <button type="button" role="menuitem" className="ctxmenu-item" disabled={paused} onClick={() => run(onRefresh)}>Refresh usage</button>
       <button type="button" role="menuitem" className="ctxmenu-item" onClick={() => run(onReload)}>Reload config</button>
       <div className="ctxmenu-sep" />
-      <button type="button" role="menuitem" className="ctxmenu-item" onClick={onQuit}>Quit NotchUsage</button>
+      <button type="button" role="menuitem" className="ctxmenu-item" onClick={onQuit}>Quit Cooldown Bar</button>
     </div>
   </>;
 }

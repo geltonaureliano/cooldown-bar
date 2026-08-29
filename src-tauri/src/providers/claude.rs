@@ -10,9 +10,9 @@ use super::parse::{
     find_key_non_null, label_for_window, percent_of, resets_at_of, window_minutes_of,
 };
 use super::{Provider, ProviderSnapshot, Source, UsageWindow};
-use crate::env::{home_dir, resolve_binary, run_bounded_input};
+use crate::env::{resolve_binary, run_bounded_input};
 
-const REQUEST_ID: &str = "notchusage-get-usage";
+const REQUEST_ID: &str = "cooldown-bar-get-usage";
 const CLI_TIMEOUT: Duration = Duration::from_secs(12);
 
 pub struct ClaudeProvider {
@@ -271,7 +271,7 @@ fn window_from(v: Option<&Value>, fallback_label: &str, base: Option<i64>) -> Op
 }
 
 fn statusline_file() -> Option<PathBuf> {
-    let p = home_dir()?.join(".notchusage/claude.json");
+    let p = crate::env::preferred_app_file("claude.json")?;
     p.is_file().then_some(p)
 }
 

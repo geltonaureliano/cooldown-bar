@@ -12,7 +12,7 @@ kill: stop
 run: dev
 
 ps:
-	@pgrep -fl "notchusage|NotchUsage" || true
+	@pgrep -fl "cooldown-bar|Cooldown Bar" || true
 
 build:
 	npm run tauri build

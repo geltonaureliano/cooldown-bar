@@ -3,7 +3,7 @@
  *
  * No vendor logo is shipped or fetched. The Claude mark is the one shape the
  * design specifies exactly; the others are neutral geometry. A user who wants
- * the real logos can drop a PNG at `~/.notchusage/icons/<id>.png` and it will be
+ * the real logos can drop a PNG at `~/.cooldown-bar/icons/<id>.png` and it will be
  * used instead — see `ProviderMark` below.
  */
 
@@ -97,7 +97,7 @@ export function CustomMark({ size, color = "#fff" }: MarkProps) {
  * Pick the mark for a provider id, honouring an icon file when one exists.
  *
  * Icon files are served through Tauri's asset protocol, scoped in
- * `tauri.conf.json` to `~/.notchusage/icons/**` and nothing else.
+ * `tauri.conf.json` to `~/.cooldown-bar/icons/**` and nothing else.
  */
 export function ProviderMark({
   id,

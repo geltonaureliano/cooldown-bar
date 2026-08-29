@@ -1,1 +1,0 @@
-{"default":{"identifier":"default","description":"Capabilities for the NotchUsage panel window.","local":true,"windows":["main"],"permissions":["core:default","core:event:default","core:window:allow-set-size","core:window:allow-set-position","core:window:allow-inner-size","core:webview:allow-internal-toggle-devtools"]}}

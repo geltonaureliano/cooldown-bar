@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "NotchUsage",
+  "productName": "Cooldown Bar",
   "version": "0.0.1",
-  "identifier": "com.notchusage.app",
+  "identifier": "com.cooldownbar.desktop",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:5173",
@@ -15,7 +15,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "NotchUsage",
+        "title": "Cooldown Bar",
         "url": "index.html",
         "width": 112,
         "height": 300,
@@ -40,6 +40,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
+          "$HOME/.cooldown-bar/icons/**",
           "$HOME/.notchusage/icons/**"
         ]
       }

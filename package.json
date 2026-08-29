@@ -1,7 +1,17 @@
 {
-  "name": "notchusage",
+  "name": "cooldown-bar",
   "private": true,
   "version": "0.0.1",
+  "description": "A quiet macOS rate limit monitor for Claude Code, Codex, and custom command providers.",
+  "author": "Gelton Aureliano",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/geltonaureliano/cooldown-bar.git"
+  },
+  "homepage": "https://github.com/geltonaureliano/cooldown-bar#readme",
+  "bugs": {
+    "url": "https://github.com/geltonaureliano/cooldown-bar/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

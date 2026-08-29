@@ -23,7 +23,7 @@ static LOGIN_PATH: OnceLock<String> = OnceLock::new();
 /// Cache of binary name -> absolute path.
 ///
 /// Only **successful** lookups are cached. Caching a miss would mean a user who
-/// installs a CLI after launching NotchUsage keeps seeing "not found" until they
+/// installs a CLI after launching Cooldown Bar keeps seeing "not found" until they
 /// restart the app.
 static BINARY_CACHE: OnceLock<Mutex<HashMap<String, PathBuf>>> = OnceLock::new();
 
@@ -128,6 +128,39 @@ pub fn home_dir() -> Option<PathBuf> {
         .filter(|p| !p.as_os_str().is_empty())
 }
 
+pub const APP_DIRECTORY: &str = ".cooldown-bar";
+pub const LEGACY_APP_DIRECTORY: &str = ".notchusage";
+
+pub fn app_dir() -> Option<PathBuf> {
+    Some(home_dir()?.join(APP_DIRECTORY))
+}
+
+pub fn app_dirs() -> Vec<PathBuf> {
+    let Some(home) = home_dir() else {
+        return Vec::new();
+    };
+    vec![home.join(APP_DIRECTORY), home.join(LEGACY_APP_DIRECTORY)]
+}
+
+pub fn preferred_app_file(relative: &str) -> Option<PathBuf> {
+    let home = home_dir()?;
+    Some(preferred_app_file_from(&home, relative, |path| {
+        path.is_file()
+    }))
+}
+
+fn preferred_app_file_from(home: &Path, relative: &str, exists: impl Fn(&Path) -> bool) -> PathBuf {
+    let current = home.join(APP_DIRECTORY).join(relative);
+    if exists(&current) {
+        return current;
+    }
+    let legacy = home.join(LEGACY_APP_DIRECTORY).join(relative);
+    if exists(&legacy) {
+        return legacy;
+    }
+    current
+}
+
 /// Extra absolute locations to try for a specific CLI, when it is shipped inside
 /// an application bundle rather than installed on `PATH`.
 ///
@@ -213,4 +246,34 @@ pub fn run_bounded_input(
     cmd.args(args.iter().map(OsStr::new));
     cmd.env("PATH", login_path());
     run_bounded(cmd, input, timeout)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn current_app_file_has_priority() {
+        let home = Path::new("/tmp/cooldown-home");
+        let selected = preferred_app_file_from(home, "config.json", |path| {
+            path.ends_with(".cooldown-bar/config.json") || path.ends_with(".notchusage/config.json")
+        });
+        assert_eq!(selected, home.join(".cooldown-bar/config.json"));
+    }
+
+    #[test]
+    fn legacy_app_file_is_used_during_upgrade() {
+        let home = Path::new("/tmp/cooldown-home");
+        let selected = preferred_app_file_from(home, "config.json", |path| {
+            path.ends_with(".notchusage/config.json")
+        });
+        assert_eq!(selected, home.join(".notchusage/config.json"));
+    }
+
+    #[test]
+    fn new_app_file_is_default_for_fresh_install() {
+        let home = Path::new("/tmp/cooldown-home");
+        let selected = preferred_app_file_from(home, "config.json", |_| false);
+        assert_eq!(selected, home.join(".cooldown-bar/config.json"));
+    }
 }

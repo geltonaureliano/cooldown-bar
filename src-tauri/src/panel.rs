@@ -87,7 +87,7 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
     #[cfg(debug_assertions)]
     {
         eprintln!(
-            "[notchusage] panel class={:?} can_become_key={} can_become_main={} hides_on_deactivate={} visible={}",
+            "[cooldown-bar] panel class={:?} can_become_key={} can_become_main={} hides_on_deactivate={} visible={}",
             panel.as_panel().class().name(),
             panel.can_become_key_window(),
             panel.can_become_main_window(),
@@ -95,7 +95,7 @@ pub fn install(window: &WebviewWindow) -> tauri::Result<()> {
             panel.is_visible(),
         );
         eprintln!(
-            "[notchusage] style_mask={:?} unconstrained={_unconstrained}",
+            "[cooldown-bar] style_mask={:?} unconstrained={_unconstrained}",
             panel.as_panel().styleMask()
         );
     }

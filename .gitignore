@@ -1,14 +1,18 @@
-node_modules
-dist
-src-tauri/target
-.DS_Store
+# Dependencies and build output.
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
 
+# Local development state.
+.DS_Store
+.cooldown-bar-dev.json
 .notchusage-dev.json
 __pycache__/
+.claude/
 
 # Apple signing material must stay outside the repository.
 *.p12
 *.p8
 *.keychain-db
 certificate-base64.txt
-certificado-base64.txt

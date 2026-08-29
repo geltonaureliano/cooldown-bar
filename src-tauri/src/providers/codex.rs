@@ -147,7 +147,7 @@ impl Session {
             account_changed: false,
             headline_limit: None,
         };
-        session.request("initialize", json!({"clientInfo":{"name":"NotchUsage","version":env!("CARGO_PKG_VERSION")},"capabilities":{"experimentalApi":true}}), INIT_TIMEOUT)?;
+        session.request("initialize", json!({"clientInfo":{"name":"Cooldown Bar","version":env!("CARGO_PKG_VERSION")},"capabilities":{"experimentalApi":true}}), INIT_TIMEOUT)?;
         session
             .process
             .send_json(

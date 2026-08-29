@@ -1,4 +1,4 @@
-//! NotchUsage — a vertical rate-limit bar pinned to the right edge of the screen.
+//! Cooldown Bar — a vertical rate-limit bar pinned to the right edge of the screen.
 //!
 //! macOS only, by design: the whole thing is an `NSPanel` plus safe-area
 //! geometry, and there is no meaningful cross-platform version of either.
@@ -123,19 +123,25 @@ fn bootstrap(state: &AppState) -> Bootstrap {
     }
 }
 
-/// Look for `~/.notchusage/icons/<id>.png`.
+/// Look for `~/.cooldown-bar/icons/<id>.png`.
 ///
 /// Scanned on every call rather than cached, so dropping a file in takes effect
 /// on the next reload instead of the next launch.
 fn icon_overrides() -> std::collections::HashMap<String, IconSource> {
     let mut out = std::collections::HashMap::new();
-    let Some(dir) = env::home_dir().map(|h| h.join(".notchusage/icons")) else {
+    let dirs: Vec<_> = env::app_dirs()
+        .into_iter()
+        .map(|root| root.join("icons"))
+        .collect();
+    if dirs.is_empty() {
         return out;
-    };
+    }
     for id in ["claude", "codex", "custom"] {
-        // A file the user dropped in wins, and is used exactly as supplied.
-        let user = dir.join(format!("{id}.png"));
-        if user.is_file() {
+        let user = dirs
+            .iter()
+            .map(|dir| dir.join(format!("{id}.png")))
+            .find(|path| path.is_file());
+        if let Some(user) = user {
             out.insert(
                 id.to_string(),
                 IconSource {
@@ -146,9 +152,11 @@ fn icon_overrides() -> std::collections::HashMap<String, IconSource> {
             );
             continue;
         }
-        // Otherwise fall back to whatever we copied out of the vendor's bundle.
-        let seeded = dir.join(format!("{id}{VENDOR_SUFFIX}"));
-        if seeded.is_file() {
+        let seeded = dirs
+            .iter()
+            .map(|dir| dir.join(format!("{id}{VENDOR_SUFFIX}")))
+            .find(|path| path.is_file());
+        if let Some(seeded) = seeded {
             out.insert(
                 id.to_string(),
                 IconSource {
@@ -177,15 +185,15 @@ const VENDOR_SUFFIX: &str = ".vendor.png";
 
 /// Copy a vendor's own icon out of its installed app bundle, once.
 ///
-/// No logo is bundled with NotchUsage or downloaded: the file already exists on
+/// No logo is bundled with Cooldown Bar or downloaded: the file already exists on
 /// this machine because the vendor's app put it there, and it is copied into the
 /// user's own config directory so the asset-protocol scope can stay pinned to
-/// `~/.notchusage/icons/**`.
+/// `~/.cooldown-bar/icons/**`.
 ///
 /// Only fills gaps — a file the user has put there is never overwritten, so
 /// replacing an icon is just a matter of dropping your own PNG in.
 fn seed_vendor_icons() {
-    let Some(dir) = env::home_dir().map(|h| h.join(".notchusage/icons")) else {
+    let Some(dir) = env::app_dir().map(|root| root.join("icons")) else {
         return;
     };
 
@@ -215,8 +223,8 @@ fn seed_vendor_icons() {
             return;
         }
         match std::fs::copy(src, &dest) {
-            Ok(_) => eprintln!("[notchusage] seeded {id} icon from {}", src.display()),
-            Err(e) => eprintln!("[notchusage] could not seed {id} icon: {e}"),
+            Ok(_) => eprintln!("[cooldown-bar] seeded {id} icon from {}", src.display()),
+            Err(e) => eprintln!("[cooldown-bar] could not seed {id} icon: {e}"),
         }
     }
 }
@@ -272,11 +280,11 @@ pub fn run() {
     let _instance = match single_instance() {
         Ok(Some(lock)) => lock,
         Ok(None) => {
-            eprintln!("[notchusage] another instance is already running");
+            eprintln!("[cooldown-bar] another instance is already running");
             return;
         }
         Err(error) => {
-            eprintln!("[notchusage] cannot acquire instance lock: {error}");
+            eprintln!("[cooldown-bar] cannot acquire instance lock: {error}");
             return;
         }
     };
@@ -348,7 +356,7 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building NotchUsage")
+        .expect("error while building Cooldown Bar")
         .run_return(move |_app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
                 exit_poller.stop();
@@ -365,28 +373,39 @@ pub fn run() {
 }
 
 /// A process-held lock prevents duplicate windows, polls, and config writers.
-fn single_instance() -> std::io::Result<Option<std::fs::File>> {
+fn single_instance() -> std::io::Result<Option<Vec<std::fs::File>>> {
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::OpenOptionsExt;
-    let path = env::home_dir()
-        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::NotFound, "no home directory"))?
-        .join(".notchusage/instance.lock");
-    std::fs::create_dir_all(path.parent().expect("lock parent"))?;
-    let file = std::fs::OpenOptions::new()
-        .create(true)
-        .truncate(false)
-        .write(true)
-        .mode(0o600)
-        .open(path)?;
-    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
-        return Ok(Some(file));
+    let directories = env::app_dirs();
+    if directories.is_empty() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "no home directory",
+        ));
     }
-    let error = std::io::Error::last_os_error();
-    if error.kind() == std::io::ErrorKind::WouldBlock {
-        Ok(None)
-    } else {
-        Err(error)
+    let mut locks = Vec::with_capacity(directories.len());
+    for (index, directory) in directories.into_iter().enumerate() {
+        if index > 0 && !directory.exists() {
+            continue;
+        }
+        std::fs::create_dir_all(&directory)?;
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .write(true)
+            .mode(0o600)
+            .open(directory.join("instance.lock"))?;
+        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
+            locks.push(file);
+            continue;
+        }
+        let error = std::io::Error::last_os_error();
+        if error.kind() == std::io::ErrorKind::WouldBlock {
+            return Ok(None);
+        }
+        return Err(error);
     }
+    Ok(Some(locks))
 }
 
 /// Failed reloads retain the working config; successful ones publish all UI data.

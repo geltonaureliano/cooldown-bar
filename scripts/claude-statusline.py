@@ -71,7 +71,7 @@ def main():
     except (ValueError, UnicodeError):
         return
     try:
-        capture(data, Path.home() / ".notchusage" / "claude.json")
+        capture(data, Path.home() / ".cooldown-bar" / "claude.json")
     except (OSError, ValueError):
         pass  # Capture failure must not break the terminal's statusline.
     if "--capture-only" not in sys.argv:

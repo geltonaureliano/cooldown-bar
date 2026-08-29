@@ -12,11 +12,11 @@ import { classifyCommit, parseGitLog, prepareRelease, previousTag, publishReleas
 import { compareVersions, nextVersion, parseVersion, readVersions, setVersion, versionFiles } from "./ci/version.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const commit = "a".repeat(40), other = "b".repeat(40), version = "0.0.1", repository = "example/notchusage";
-const managedBody = `<!-- notchusage-release:${commit} -->`;
+const commit = "a".repeat(40), other = "b".repeat(40), version = "0.0.1", repository = "example/cooldown-bar";
+const managedBody = `<!-- cooldown-bar-release:${commit} -->`;
 const metadata = { version, commit, tag: `v${version}`, architectures: ["arm64", "x86_64"], minimumMacOS: "13.0", signing: "adhoc" };
 function temp(t) {
-  const path = mkdtempSync(join(tmpdir(), "notchusage-release-test-"));
+  const path = mkdtempSync(join(tmpdir(), "cooldown-bar-release-test-"));
   t.after(() => rmSync(path, { recursive: true, force: true }));
   return path;
 }
@@ -44,10 +44,10 @@ class FakeGitHub {
     if (path === "/releases/latest") return this.latest ?? null;
     if (path === "/releases/generate-notes") {
       if (this.failNotes) throw new ApiError(503, method, path);
-      return { body: "### Novidades\n* A merged PR by @contributor" };
+      return { body: "### Features\n* A merged PR by @contributor" };
     }
     if (path === "/git/refs") { this.target = body.sha; return {}; }
-    if (path === "/releases") { this.draft = { id: 1, html_url: "https://github.com/example/notchusage/releases/tag/v0.0.1", ...body }; return this.draft; }
+    if (path === "/releases") { this.draft = { id: 1, html_url: "https://github.com/example/cooldown-bar/releases/tag/v0.0.1", ...body }; return this.draft; }
     if (method === "DELETE") { this.uploaded = this.uploaded.filter((a) => a.id !== Number(path.split("/").at(-1))); return null; }
     if (method === "POST" && path.includes("/assets?")) {
       if (this.failUpload) throw new Error("Simulated failed upload");
@@ -90,7 +90,7 @@ test("all five version files stay aligned without changing dependency versions",
   assert.deepEqual(newLock.packages, oldLock.packages);
   const cargoBefore = readFileSync(join(root, "src-tauri/Cargo.lock"), "utf8");
   const cargoAfter = readFileSync(join(directory, "src-tauri/Cargo.lock"), "utf8");
-  assert.equal(cargoAfter, cargoBefore.replace(`name = "notchusage"\nversion = "${current}"`, `name = "notchusage"\nversion = "${next}"`));
+  assert.equal(cargoAfter, cargoBefore.replace(`name = "cooldown-bar"\nversion = "${current}"`, `name = "cooldown-bar"\nversion = "${next}"`));
 });
 test("version mismatch fails before any version file is rewritten", (t) => {
   const directory = temp(t);
@@ -99,8 +99,8 @@ test("version mismatch fails before any version file is rewritten", (t) => {
   const data = JSON.parse(original);
   data.version = "99.0.0";
   writeFileSync(file, JSON.stringify(data));
-  assert.throws(() => readVersions(directory), /divergentes/);
-  assert.throws(() => setVersion("patch", directory), /divergentes/);
+  assert.throws(() => readVersions(directory), /differ/);
+  assert.throws(() => setVersion("patch", directory), /differ/);
   assert.equal(readFileSync(join(directory, "src-tauri/Cargo.lock"), "utf8"), readFileSync(join(root, "src-tauri/Cargo.lock"), "utf8"));
 });
 
@@ -112,7 +112,7 @@ test("publication is limited to the default branch and explicit manual intent", 
   assert.equal(releaseRequested({ ...input, eventName: "workflow_dispatch" }), false);
   assert.equal(releaseRequested({ ...input, eventName: "workflow_dispatch", publish: true }), true);
   assert.equal(releaseRequested({ ...input, eventName: "push", ref: "refs/heads/feature" }), false);
-  assert.throws(() => releaseRequested({ ...input, eventName: "workflow_dispatch", publish: true, ref: "refs/heads/feature" }), /branch padrão/);
+  assert.throws(() => releaseRequested({ ...input, eventName: "workflow_dispatch", publish: true, ref: "refs/heads/feature" }), /default branch/);
 });
 test("previous tag selection uses numeric versions and ignores non-release tags", () => {
   assert.equal(previousTag(["v0.0.9", "nightly", "v0.0.10", "v0.0.11", "v0.0.11-rc.1"], "0.0.11"), "v0.0.10");
@@ -135,13 +135,13 @@ test("pushes at an already published version validate without republishing", asy
 });
 test("tag conflicts and old versions fail before building/publishing", async () => {
   const input = { version, commit, requested: true, tags: [] };
-  await assert.rejects(prepareRelease(input, new FakeGitHub({ target: other })), /outro commit/);
-  await assert.rejects(prepareRelease({ ...input, tags: ["v0.1.0"] }, new FakeGitHub()), /anterior/);
+  await assert.rejects(prepareRelease(input, new FakeGitHub({ target: other })), /another commit/);
+  await assert.rejects(prepareRelease({ ...input, tags: ["v0.1.0"] }, new FakeGitHub()), /older/);
 });
 test("foreign drafts are not overwritten by the pipeline", async (t) => {
   const api = new FakeGitHub({ target: commit, draft: { id: 1, draft: true, body: "Handwritten release" } });
-  await assert.rejects(prepareRelease({ version, commit, requested: true, tags: [] }, api), /rascunho/);
-  await assert.rejects(publishRelease(publishing(fixture(t)), api), /rascunho/);
+  await assert.rejects(prepareRelease({ version, commit, requested: true, tags: [] }, api), /draft/);
+  await assert.rejects(publishRelease(publishing(fixture(t)), api), /draft/);
   assert.equal(api.calls.length, 0);
 });
 test("commit parser handles real Git history, multiline bodies and shell-like text", (t) => {
@@ -156,47 +156,47 @@ test("commit parser handles real Git history, multiline bodies and shell-like te
 });
 test("release notes classify features, fixes, security, dependencies and breaking changes", () => {
   const cases = [
-    ["feat(ui): new ring", "Novidades"], ["fix: timeout", "Correções"], ["perf: less CPU", "Desempenho"],
-    ["fix(security): validate input", "Segurança"], ["chore(deps): update Tauri", "Dependências"],
-    ["ci: release workflow", "Build e automação"], ["feat!: new schema", "Mudanças que exigem atenção"],
-    ["Unstructured commit", "Outras mudanças"],
+    ["feat(ui): new ring", "Features"], ["fix: timeout", "Fixes"], ["perf: less CPU", "Performance"],
+    ["fix(security): validate input", "Security"], ["chore(deps): update Tauri", "Dependencies"],
+    ["ci: release workflow", "Build and automation"], ["feat!: new schema", "Breaking changes"],
+    ["Unstructured commit", "Other changes"],
   ];
   for (const [subject, category] of cases) assert.equal(classifyCommit({ subject }).category, category);
   assert.equal(classifyCommit({ subject: "fix: config", body: "BREAKING-CHANGE: needs migration" }).breaking, true);
 });
 test("notes work without PRs or previous tags, escape commit titles and disclose ad-hoc signing", () => {
   const notes = renderNotes({ version, commit, repository, commits: [{ sha: commit, subject: "fix: <script> [link](bad)" }], curated: "First native release." });
-  assert.match(notes, /Primeira versão/);
+  assert.match(notes, /First public release/);
   assert.match(notes, /First native release/);
   assert.match(notes, /\\<script\\>/);
-  assert.match(notes, /sem notarização Apple/);
-  assert.match(notes, /NotchUsage_0.0.1_universal.dmg/);
+  assert.match(notes, /no Apple notarization/);
+  assert.match(notes, /Cooldown_Bar_0.0.1_universal.dmg/);
   assert.ok(!notes.includes("undefined"));
-  assert.ok(!notes.includes("notarização e ticket Apple verificados"));
+  assert.ok(!notes.includes("Apple ticket verified"));
 });
 test("signed notes and previous-version comparison reflect verified build metadata", () => {
   const notes = renderNotes({ version: "0.0.2", commit, repository, previous: "v0.0.1", commits: [], signing: "developer-id-notarized", generated: "### PRs\n- Improved widget" });
   assert.match(notes, /compare\/v0.0.1\.\.\.v0.0.2/);
-  assert.match(notes, /notarização e ticket Apple verificados/);
+  assert.match(notes, /Apple ticket verified/);
   assert.match(notes, /Improved widget/);
 });
 test("artifact checks validate exact names, commit, version, architectures and checksums", (t) => {
   const directory = fixture(t);
   assert.equal(verifyArtifacts(directory, { version, commit }).assets.length, 4);
-  assert.throws(() => verifyArtifacts(directory, { version, commit: other }), /não corresponde/);
+  assert.throws(() => verifyArtifacts(directory, { version, commit: other }), /does not match/);
   writeFileSync(join(directory, assetNames(version)[0]), "corrupt download");
-  assert.throws(() => verifyArtifacts(directory, { version, commit }), /integridade/);
+  assert.throws(() => verifyArtifacts(directory, { version, commit }), /integrity/);
 });
 test("artifacts with extra files, symlinks, wrong platform or forged checksums are refused", (t) => {
   const extra = fixture(t);
   writeFileSync(join(extra, ".secret"), "do not upload");
-  assert.throws(() => verifyArtifacts(extra, { version, commit }), /inesperados/);
+  assert.throws(() => verifyArtifacts(extra, { version, commit }), /unexpected/);
   const linked = fixture(t), name = assetNames(version)[0];
   rmSync(join(linked, name));
   symlinkSync(join(linked, "build-info.json"), join(linked, name));
-  assert.throws(() => verifyArtifacts(linked, { version, commit }), /Arquivo inválido/);
+  assert.throws(() => verifyArtifacts(linked, { version, commit }), /Invalid file/);
   const wrong = fixture(t, { architectures: ["arm64"] });
-  assert.throws(() => verifyArtifacts(wrong, { version, commit }), /não corresponde/);
+  assert.throws(() => verifyArtifacts(wrong, { version, commit }), /does not match/);
   const checksums = fixture(t);
   writeFileSync(join(checksums, "SHA256SUMS.txt"), "bad hashes\n");
   assert.throws(() => verifyArtifacts(checksums, { version, commit }), /SHA256SUMS/);
@@ -212,7 +212,7 @@ test("publication creates tag at the tested commit, uploads four assets, then pu
 });
 test("invalid local artifacts never create a remote tag or draft", async (t) => {
   const api = new FakeGitHub(), directory = fixture(t, { commit: other });
-  await assert.rejects(publishRelease(publishing(directory), api), /não corresponde/);
+  await assert.rejects(publishRelease(publishing(directory), api), /does not match/);
   assert.equal(api.calls.length, 0);
   assert.equal(api.target, null);
 });
@@ -229,30 +229,30 @@ test("failed uploads leave a draft, and reruns resume without moving the tag", a
 });
 test("draft reruns reuse matching assets and repair incomplete uploads only in drafts", async (t) => {
   const directory = fixture(t), assets = verifyArtifacts(directory, { version, commit }).assets;
-  const api = new FakeGitHub({ target: commit, draft: { id: 1, draft: true, body: managedBody, html_url: "https://github.com/example/notchusage/releases/tag/v0.0.1" } });
+  const api = new FakeGitHub({ target: commit, draft: { id: 1, draft: true, body: managedBody, html_url: "https://github.com/example/cooldown-bar/releases/tag/v0.0.1" } });
   api.uploaded = [{ id: 10, name: assets[0].name, digest: assets[0].digest, size: assets[0].size, state: "uploaded" }, { id: 11, name: assets[1].name, digest: null, size: 0, state: "starter" }];
   await publishRelease(publishing(directory), api);
   assert.equal(api.calls.filter((c) => c.path.includes("/assets?")).length, 3);
   assert.deepEqual(api.calls.filter((c) => c.method === "DELETE").map((c) => c.path), ["/releases/assets/11"]);
 });
 test("published releases are immutable to this workflow, including on retries", async (t) => {
-  const api = new FakeGitHub({ target: commit, draft: { draft: false, html_url: "https://github.com/example/notchusage/releases/tag/v0.0.1" } });
+  const api = new FakeGitHub({ target: commit, draft: { draft: false, html_url: "https://github.com/example/cooldown-bar/releases/tag/v0.0.1" } });
   assert.equal((await publishRelease(publishing(fixture(t)), api)).alreadyPublished, true);
   assert.equal(api.calls.length, 0);
   api.target = other;
-  await assert.rejects(publishRelease(publishing(fixture(t)), api), /outro commit/);
+  await assert.rejects(publishRelease(publishing(fixture(t)), api), /another commit/);
   assert.equal(api.calls.length, 0);
 });
 test("GitHub upload digest mismatch blocks public release", async (t) => {
   const api = new FakeGitHub({ corrupt: true });
-  await assert.rejects(publishRelease(publishing(fixture(t)), api), /Verificação dos uploads/);
+  await assert.rejects(publishRelease(publishing(fixture(t)), api), /Upload verification/);
   assert.equal(api.draft.draft, true);
   assert.ok(!api.calls.some((c) => c.body?.draft === false));
 });
 test("retrying an old failed run cannot demote a newer latest release", async (t) => {
   const api = new FakeGitHub();
   api.latest = { tag_name: "v0.0.2" };
-  await assert.rejects(publishRelease(publishing(fixture(t)), api), /mais recente/);
+  await assert.rejects(publishRelease(publishing(fixture(t)), api), /newer version/);
   assert.equal(api.target, null);
   assert.ok(api.calls.every((c) => c.method === "GET"));
 });
@@ -260,7 +260,7 @@ test("a tag changed during uploads leaves the release in draft", async (t) => {
   const api = new FakeGitHub();
   let reads = 0;
   api.tagCommit = async () => ++reads === 1 ? null : other;
-  await assert.rejects(publishRelease(publishing(fixture(t)), api), /tag mudou/);
+  await assert.rejects(publishRelease(publishing(fixture(t)), api), /tag changed/);
   assert.equal(api.draft.draft, true);
 });
 test("GitHub notes failure falls back to local history without inventing changes", async (t) => {
@@ -288,7 +288,7 @@ test("API distinguishes not-found, permission errors and uncertain network write
   await assert.rejects(api.release("v0.0.1"), (e) => e.status === 403);
   let calls = 0;
   api.fetch = async () => { calls++; throw new Error("network"); };
-  await assert.rejects(api.request("POST", "/git/refs", {}), /Execute novamente/);
+  await assert.rejects(api.request("POST", "/git/refs", {}), /Run the workflow again/);
   assert.equal(calls, 1);
 });
 test("annotated tags resolve to their underlying commit", async () => {
@@ -313,7 +313,7 @@ test("ad-hoc builds strip Apple credentials; incomplete signed configuration fai
   assert.equal(result.env.APPLE_API_KEY, undefined);
   assert.equal(result.env.PATH, "/bin");
   assert.equal(buildEnvironment({ ...secrets, SIGNING_ENABLED: "true" }).signing, "developer-id-notarized");
-  assert.throws(() => buildEnvironment({ SIGNING_ENABLED: "true" }), /faltam secrets/);
+  assert.throws(() => buildEnvironment({ SIGNING_ENABLED: "true" }), /secrets are missing/);
   assert.throws(() => buildEnvironment({ ...secrets, SIGNING_ENABLED: "true", APPLE_SIGNING_IDENTITY: "-" }), /Developer ID/);
 });
 test("workflow uses pinned actions, locked dependencies and no privileged PR triggers", () => {

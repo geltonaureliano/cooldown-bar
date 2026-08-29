@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(import.meta.url);
 const root = resolve(dirname(script), "..");
-const stateFile = resolve(root, ".notchusage-dev.json");
+const stateFile = resolve(root, ".cooldown-bar-dev.json");
 export function isOwned(record, command) {
   return Number.isSafeInteger(record?.pid) && record.pid > 1 && record.script === script
     && typeof record.token === "string" && /^[a-f0-9-]{36}$/.test(record.token)
@@ -28,7 +28,7 @@ function clean(token) { if (record()?.token === token) { try { unlinkSync(stateF
 async function main(action, token) {
   if (action === "stop") {
     const r = owned();
-    if (!r) { console.log("No managed NotchUsage development process. Other processes were left alone."); return; }
+    if (!r) { console.log("No managed Cooldown Bar development process. Other processes were left alone."); return; }
     signal(r.pid, "SIGTERM");
     const deadline = Date.now() + 6000;
     while (owned() && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 100));

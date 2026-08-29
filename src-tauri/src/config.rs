@@ -1,4 +1,4 @@
-//! `~/.notchusage/config.json`.
+//! `~/.cooldown-bar/config.json`.
 //!
 //! Every key is optional and every missing key falls back to a default, so an
 //! empty file, a partial file, or no file at all all work.
@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::env::home_dir;
+use crate::env;
 
 fn d_bar_width() -> f64 {
     62.0
@@ -134,7 +134,7 @@ impl Config {
     }
 
     pub fn path() -> Option<PathBuf> {
-        Some(home_dir()?.join(".notchusage/config.json"))
+        env::preferred_app_file("config.json")
     }
 
     /// Read the config, falling back to defaults on anything unreadable.

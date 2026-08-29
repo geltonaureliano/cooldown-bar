@@ -61,7 +61,7 @@ impl MouseTracker {
                     }
                 }
                 if let Err(e) = Config::persist_position(position.0, position.1) {
-                    eprintln!("[notchusage] could not save position: {e}");
+                    eprintln!("[cooldown-bar] could not save position: {e}");
                 }
                 if stop {
                     break;

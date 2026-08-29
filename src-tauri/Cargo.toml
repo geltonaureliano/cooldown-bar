@@ -1,13 +1,15 @@
 [package]
-name = "notchusage"
+name = "cooldown-bar"
 version = "0.0.1"
-description = "Vertical rate-limit bar for AI CLI providers"
-authors = ["NotchUsage"]
+description = "A quiet macOS rate limit monitor for AI command line tools"
+authors = ["Gelton Aureliano"]
 edition = "2021"
 rust-version = "1.77"
+repository = "https://github.com/geltonaureliano/cooldown-bar"
+homepage = "https://github.com/geltonaureliano/cooldown-bar"
 
 [lib]
-name = "notchusage_lib"
+name = "cooldown_bar_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

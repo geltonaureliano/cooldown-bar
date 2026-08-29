@@ -150,7 +150,7 @@ pub fn set_panel_frame(panel: &NSPanel, x: f64, y: f64, width: f64, height: f64)
         // AppKit rounds to device pixels; only report a real disagreement.
         if (got.origin.x - x).abs() > 1.5 || (got.origin.y - y).abs() > 1.5 {
             eprintln!(
-                "[notchusage] frame asked=({x:.0},{y:.0} {width:.0}x{height:.0}) got=({:.0},{:.0} {:.0}x{:.0})",
+                "[cooldown-bar] frame asked=({x:.0},{y:.0} {width:.0}x{height:.0}) got=({:.0},{:.0} {:.0}x{:.0})",
                 got.origin.x, got.origin.y, got.size.width, got.size.height
             );
         }

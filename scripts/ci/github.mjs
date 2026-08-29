@@ -4,15 +4,15 @@ const UPLOADS = "https://uploads.github.com";
 export class ApiError extends Error {
   constructor(status, method, path) {
     // Never include request headers, secrets, or arbitrary response bodies in logs.
-    super(`GitHub API: ${method} ${path} retornou HTTP ${status}.`);
+    super(`GitHub API: ${method} ${path} returned HTTP ${status}.`);
     this.status = status;
   }
 }
 
 export class GitHub {
   constructor(repository, token, { fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
-    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? "")) throw new Error("GITHUB_REPOSITORY inválido.");
-    if (!token) throw new Error("GITHUB_TOKEN ausente.");
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository ?? "")) throw new Error("Invalid GITHUB_REPOSITORY.");
+    if (!token) throw new Error("Missing GITHUB_TOKEN.");
     this.repository = repository;
     this.base = `/repos/${repository}`;
     this.fetch = fetchImpl;
@@ -40,7 +40,7 @@ export class GitHub {
       } catch {
         // A write may have succeeded before a connection failed. Do not repeat it
         // blindly: a workflow rerun reconciles existing tags/drafts/assets first.
-        if (!readOnly || attempt >= 2) throw new Error(`Falha de conexão com o GitHub (${method} ${path}). Execute novamente para reconciliar o estado.`);
+        if (!readOnly || attempt >= 2) throw new Error(`GitHub connection failed (${method} ${path}). Run the workflow again to reconcile remote state.`);
         await this.sleep(1000 * 2 ** attempt);
         continue;
       }
@@ -64,7 +64,7 @@ export class GitHub {
       if (object.type !== "tag") break;
       object = (await this.request("GET", `/git/tags/${object.sha}`)).object;
     }
-    throw new Error(`A tag ${tag} não aponta para um commit válido.`);
+    throw new Error(`A tag ${tag} does not point to a valid commit.`);
   }
 
   async release(tag) {
@@ -78,7 +78,7 @@ export class GitHub {
       if (existing) return existing;
       if (batch.length < 100) return null;
     }
-    throw new Error("Limite de paginação atingido ao procurar a release; revisão manual necessária.");
+    throw new Error("Pagination limit reached while finding the release. Manual review is required.");
   }
 
   async assets(id) {
@@ -88,6 +88,6 @@ export class GitHub {
       assets.push(...batch);
       if (batch.length < 100) return assets;
     }
-    throw new Error("Quantidade inesperada de arquivos na release.");
+    throw new Error("Unexpected number of release assets.");
   }
 }

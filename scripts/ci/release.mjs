@@ -8,11 +8,11 @@ import { compareVersions, parseVersion, readVersions } from "./version.mjs";
 
 const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
 const escapeMarkdown = (text) => text.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/([\\`*_[\]<>])/g, "\\$1");
-const marker = (commit) => `<!-- notchusage-release:${commit} -->`;
+const marker = (commit) => `<!-- cooldown-bar-release:${commit} -->`;
 
 export function releaseRequested({ eventName, ref, defaultBranch, publish }) {
   const main = ref === `refs/heads/${defaultBranch}`;
-  if (eventName === "workflow_dispatch" && publish && !main) throw new Error("Publicação manual permitida somente na branch padrão do repositório.");
+  if (eventName === "workflow_dispatch" && publish && !main) throw new Error("Manual publication is allowed only from the default branch.");
   return main && (eventName === "push" || (eventName === "workflow_dispatch" && publish));
 }
 
@@ -24,29 +24,29 @@ export function previousTag(tags, version) {
 
 export async function prepareRelease({ version, commit, requested, tags }, api) {
   parseVersion(version);
-  if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("Commit inválido.");
+  if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("Invalid commit.");
   const tag = `v${version}`, previous = previousTag(tags, version);
   const metadata = { version, commit, tag, previous_tag: previous, publish: false };
-  if (!requested) return { ...metadata, reason: "Validação sem publicação." };
+  if (!requested) return { ...metadata, reason: "Validation without publication." };
   const release = await api.release(tag);
   // Normal pushes after a release keep validating the code without republishing it.
-  if (release && !release.draft) return { ...metadata, reason: `${tag} já publicada; altere a versão para uma nova release.` };
+  if (release && !release.draft) return { ...metadata, reason: `${tag} is already published. Change the version before creating another release.` };
   for (const other of tags) {
     if (/^v\d+\.\d+\.\d+$/.test(other) && compareVersions(other.slice(1), version) > 0) {
-      throw new Error(`A versão ${version} é anterior à tag ${other}; não será publicada como latest.`);
+      throw new Error(`Version ${version} is older than tag ${other} and will not be published as latest.`);
     }
   }
   const target = await api.tagCommit(tag);
-  if (target && target !== commit) throw new Error(`A tag ${tag} já aponta para outro commit. Aumente a versão; tags nunca são movidas.`);
-  if (release && !release.body?.includes(marker(commit))) throw new Error("Existe um rascunho não gerenciado por este CI. Revise-o manualmente antes de continuar.");
-  return { ...metadata, publish: true, reason: `Publicar ${tag} após todos os testes e o build.` };
+  if (target && target !== commit) throw new Error(`A tag ${tag} already points to another commit. Increase the version because tags are never moved.`);
+  if (release && !release.body?.includes(marker(commit))) throw new Error("An unmanaged draft already exists. Review it manually before continuing.");
+  return { ...metadata, publish: true, reason: `Publish ${tag} after all tests and the build.` };
 }
 
 export function parseGitLog(text) {
   const fields = text.split("\0"), commits = [];
   for (let i = 0; i + 1 < fields.length; i += 2) {
     const sha = fields[i].trim(), message = fields[i + 1].trim();
-    if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error("Histórico Git inválido.");
+    if (!/^[a-f0-9]{40}$/.test(sha)) throw new Error("Invalid Git history.");
     const [subject, ...body] = message.split("\n");
     commits.push({ sha, subject, body: body.join("\n") });
   }
@@ -57,15 +57,15 @@ export function classifyCommit({ subject, body = "" }) {
   const match = subject.match(/^([a-z]+)(?:\(([^)]+)\))?(!)?:\s*(.+)$/i);
   const type = match?.[1]?.toLowerCase(), scope = match?.[2]?.toLowerCase();
   const breaking = Boolean(match?.[3]) || /^BREAKING[ -]CHANGE:/m.test(body);
-  let category = "Outras mudanças";
-  if (breaking) category = "Mudanças que exigem atenção";
-  else if (type === "security" || scope === "security") category = "Segurança";
-  else if (scope === "deps" || scope === "deps-dev" || type === "deps") category = "Dependências";
-  else category = ({ feat: "Novidades", fix: "Correções", perf: "Desempenho", docs: "Documentação", ci: "Build e automação", build: "Build e automação", refactor: "Manutenção", test: "Testes", chore: "Manutenção" })[type] ?? category;
+  let category = "Other changes";
+  if (breaking) category = "Breaking changes";
+  else if (type === "security" || scope === "security") category = "Security";
+  else if (scope === "deps" || scope === "deps-dev" || type === "deps") category = "Dependencies";
+  else category = ({ feat: "Features", fix: "Fixes", perf: "Performance", docs: "Documentation", ci: "Build and automation", build: "Build and automation", refactor: "Maintenance", test: "Tests", chore: "Maintenance" })[type] ?? category;
   return { category, breaking, title: match ? `${match[2] ? `${match[2]}: ` : ""}${match[4]}` : subject };
 }
 
-const categoryOrder = ["Mudanças que exigem atenção", "Segurança", "Novidades", "Correções", "Desempenho", "Dependências", "Build e automação", "Documentação", "Testes", "Manutenção", "Outras mudanças"];
+const categoryOrder = ["Breaking changes", "Security", "Features", "Fixes", "Performance", "Dependencies", "Build and automation", "Documentation", "Tests", "Maintenance", "Other changes"];
 
 export function renderNotes({ version, commit, previous, repository, commits, curated = "", generated = "", signing = "adhoc" }) {
   parseVersion(version);
@@ -74,30 +74,30 @@ export function renderNotes({ version, commit, previous, repository, commits, cu
   for (const entry of commits.slice(0, 200)) {
     const item = classifyCommit(entry);
     if (!grouped.has(item.category)) grouped.set(item.category, []);
-    grouped.get(item.category).push(`- ${escapeMarkdown(item.title)} ([${entry.sha.slice(0, 7)}](${repo}/commit/${entry.sha}))`);
+    grouped.get(item.category).push(`1. ${escapeMarkdown(item.title)} ([${entry.sha.slice(0, 7)}](${repo}/commit/${entry.sha}))`);
   }
   const historyLink = previous ? `${repo}/compare/${previous}...${tag}` : `${repo}/commits/${tag}`;
-  const parts = [marker(commit), `# NotchUsage ${tag}`, previous ? `Atualização desde **${previous}**.` : "Primeira versão publicada do NotchUsage."];
-  if (curated.trim()) parts.push("## Destaques", curated.trim());
-  if (generated.trim()) parts.push("## Pull requests e colaboradores", generated.trim());
-  parts.push("<details>\n<summary>Mudanças por commit</summary>\n");
+  const parts = [marker(commit), `# Cooldown Bar ${tag}`, previous ? `Changes since **${previous}**.` : "First public release of Cooldown Bar."];
+  if (curated.trim()) parts.push("## Highlights", curated.trim());
+  if (generated.trim()) parts.push("## Pull requests and contributors", generated.trim());
+  parts.push("<details>\n<summary>Changes by commit</summary>\n");
   for (const category of categoryOrder) if (grouped.has(category)) parts.push(`### ${category}`, grouped.get(category).join("\n"));
-  if (!commits.length) parts.push("Nenhum commit adicional no intervalo desta versão.");
-  if (commits.length > 200) parts.push("Exibidos os primeiros 200 commits; consulte o histórico completo abaixo.");
-  parts.push("</details>", `[Histórico completo](${historyLink})`);
+  if (!commits.length) parts.push("No additional commits in this release range.");
+  if (commits.length > 200) parts.push("The first 200 commits are shown. Use the complete history link below.");
+  parts.push("</details>", `[Complete history](${historyLink})`);
   const names = assetNames(version);
-  parts.push("## Download e instalação", "Compatível com **macOS 13 ou superior**, em **Apple Silicon e Intel**. O mesmo instalador atende às duas arquiteturas.",
-    `- [Instalador DMG](${repo}/releases/download/${tag}/${names[0]}) — abra e arraste NotchUsage para Aplicativos.`,
-    `- [Aplicativo em ZIP](${repo}/releases/download/${tag}/${names[1]}) — alternativa ao DMG.`,
-    `- [SHA256SUMS.txt](${repo}/releases/download/${tag}/SHA256SUMS.txt) e [metadados do build](${repo}/releases/download/${tag}/build-info.json).`,
+  parts.push("## Download and installation", "Compatible with **macOS 13 or newer** on **Apple Silicon and Intel**. The same package supports both architectures.",
+    `1. [DMG installer](${repo}/releases/download/${tag}/${names[0]}): open it and move Cooldown Bar to Applications.`,
+    `1. [Application ZIP](${repo}/releases/download/${tag}/${names[1]}): an alternative to the DMG.`,
+    `1. [SHA256SUMS.txt](${repo}/releases/download/${tag}/SHA256SUMS.txt) and [build metadata](${repo}/releases/download/${tag}/build-info.json).`,
     signing === "developer-id-notarized"
-      ? "**Assinatura:** Developer ID; notarização e ticket Apple verificados pelo CI."
-      : "**Build de teste com assinatura ad hoc, sem notarização Apple.** O Gatekeeper pode bloquear a abertura. Siga as opções de Privacidade e Segurança do macOS somente se confiar na origem. Esta assinatura não comprova a identidade de um desenvolvedor Apple.",
-    "Para conferir a integridade, baixe os dois pacotes, `build-info.json` e `SHA256SUMS.txt` para a mesma pasta e execute:\n\n```bash\nshasum -a 256 -c SHA256SUMS.txt\n```",
-    `Commit compilado: [\`${commit}\`](${repo}/commit/${commit}).`,
-    "As categorias são inferidas das mensagens dos commits e dos labels dos pull requests; não representam uma análise automática do comportamento do código.");
+      ? "**Signing:** Developer ID with notarization and Apple ticket verified by CI."
+      : "**Test build with ad hoc signing and no Apple notarization.** Gatekeeper can block it. Use macOS Privacy and Security options only when you trust the source. This signature does not verify an Apple developer identity.",
+    "To verify integrity, download both packages, `build-info.json` and `SHA256SUMS.txt` to the same directory and run:\n\n```bash\nshasum -a 256 -c SHA256SUMS.txt\n```",
+    `Compiled commit: [\`${commit}\`](${repo}/commit/${commit}).`,
+    "Categories are inferred from commit messages and pull request labels. They are not an automatic analysis of code behavior.");
   const notes = `${parts.join("\n\n")}\n`;
-  if (Buffer.byteLength(notes) > 120_000) throw new Error("Release notes muito extensas; reduza o resumo editorial.");
+  if (Buffer.byteLength(notes) > 120_000) throw new Error("Release notes are too long. Shorten the editorial summary.");
   return notes;
 }
 
@@ -107,17 +107,17 @@ export async function publishRelease({ version, commit, previous, repository, di
   const tag = `v${version}`;
   let release = await api.release(tag);
   const target = await api.tagCommit(tag);
-  if (target && target !== commit) throw new Error(`A tag ${tag} aponta para outro commit; publicação recusada.`);
+  if (target && target !== commit) throw new Error(`A tag ${tag} points to another commit. Publication refused.`);
   if (release && !release.draft) {
-    if (target !== commit) throw new Error("A release existente não corresponde ao commit compilado.");
+    if (target !== commit) throw new Error("The existing release does not match the compiled commit.");
     return { url: release.html_url, alreadyPublished: true };
   }
-  if (release && !release.body?.includes(marker(commit))) throw new Error("O rascunho existente não pertence a esta execução/commit.");
+  if (release && !release.body?.includes(marker(commit))) throw new Error("The existing draft does not belong to this run and commit.");
   // A failed old run can be retried after a newer version has already shipped.
   // Recheck remotely here, even when the preparation job was not rerun.
   const latest = await api.request("GET", "/releases/latest", undefined, { allow404: true });
   if (latest?.tag_name && /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(latest.tag_name) && compareVersions(latest.tag_name.slice(1), version) > 0) {
-    throw new Error(`Uma versão mais recente (${latest.tag_name}) já foi publicada; esta execução antiga não será promovida a latest.`);
+    throw new Error(`A newer version (${latest.tag_name}) has already been published. This older run will not become latest.`);
   }
   let generated = "";
   try {
@@ -127,15 +127,15 @@ export async function publishRelease({ version, commit, previous, repository, di
     });
     generated = response.body;
   } catch {
-    console.warn("Notas de PRs indisponíveis; usando os commits locais e o resumo editorial.");
+    console.warn("Pull request notes are unavailable. Local commits and editorial notes will be used.");
   }
   const body = renderNotes({ version, commit, previous, repository, commits, curated, generated, signing: info.signing });
   if (!target) await api.request("POST", "/git/refs", { ref: `refs/tags/${tag}`, sha: commit });
-  if (!release) release = await api.request("POST", "/releases", { tag_name: tag, target_commitish: commit, name: `NotchUsage ${tag}`, body, draft: true, prerelease: false });
-  else release = await api.request("PATCH", `/releases/${release.id}`, { body, name: `NotchUsage ${tag}` });
+  if (!release) release = await api.request("POST", "/releases", { tag_name: tag, target_commitish: commit, name: `Cooldown Bar ${tag}`, body, draft: true, prerelease: false });
+  else release = await api.request("PATCH", `/releases/${release.id}`, { body, name: `Cooldown Bar ${tag}` });
 
   const existing = await api.assets(release.id);
-  if (existing.some((a) => !assets.some((expected) => a.name === expected.name))) throw new Error("O rascunho contém arquivos adicionais; revisão manual necessária.");
+  if (existing.some((a) => !assets.some((expected) => a.name === expected.name))) throw new Error("The draft contains additional files. Manual review is required.");
   for (const asset of assets) {
     const old = existing.find((a) => a.name === asset.name);
     if (old?.state === "uploaded" && old.digest === asset.digest && old.size === asset.size) continue;
@@ -145,9 +145,9 @@ export async function publishRelease({ version, commit, previous, repository, di
   }
   const uploaded = await api.assets(release.id);
   if (uploaded.length !== assets.length || assets.some((expected) => !uploaded.some((actual) => actual.name === expected.name && actual.size === expected.size && actual.digest === expected.digest && actual.state === "uploaded"))) {
-    throw new Error("Verificação dos uploads falhou. A release permanece em rascunho.");
+    throw new Error("Upload verification failed. The release remains a draft.");
   }
-  if (await api.tagCommit(tag) !== commit) throw new Error("A tag mudou durante a publicação; rascunho preservado.");
+  if (await api.tagCommit(tag) !== commit) throw new Error("The tag changed during publication. The draft was preserved.");
   // Immutable releases remain compatible: all uploads happen before publishing.
   const published = await api.request("PATCH", `/releases/${release.id}`, { draft: false, prerelease: false, make_latest: "true" });
   return { url: published.html_url, alreadyPublished: false };
@@ -163,18 +163,18 @@ async function main() {
   if (command === "prepare") {
     const metadata = await prepareRelease({ version, commit, requested, tags }, api);
     for (const [key, value] of Object.entries(metadata)) if (key !== "reason") appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Versão ${version}\n\n${metadata.reason}\n\nCommit: \`${commit}\`\n`);
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Version ${version}\n\n${metadata.reason}\n\nCommit: \`${commit}\`\n`);
     console.log(metadata.reason);
   } else if (command === "publish") {
-    if (!requested || process.env.GITHUB_ACTIONS !== "true") throw new Error("Publicação permitida somente pelo workflow na branch padrão.");
-    if (commit !== process.env.RELEASE_COMMIT) throw new Error("Checkout diferente do commit validado.");
+    if (!requested || process.env.GITHUB_ACTIONS !== "true") throw new Error("Publication is allowed only through the workflow on the default branch.");
+    if (commit !== process.env.RELEASE_COMMIT) throw new Error("The checkout does not match the validated commit.");
     const range = previous ? `${previous}..${commit}` : commit;
     const commits = parseGitLog(git("log", "--no-merges", "--max-count=501", "--format=%H%x00%B%x00", range));
     const editorial = resolve("release-notes", `${version}.md`);
     const result = await publishRelease({ version, commit, previous, repository: process.env.GITHUB_REPOSITORY, directory: resolve(process.argv[3]), commits, curated: existsSync(editorial) ? readFileSync(editorial, "utf8") : "" }, api);
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Release\n\n[NotchUsage v${version}](${result.url})${result.alreadyPublished ? " já estava publicada; nenhum arquivo foi substituído." : " publicada após verificar os quatro arquivos e seus hashes."}\n`);
+    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Release\n\n[Cooldown Bar v${version}](${result.url})${result.alreadyPublished ? " was already published. No files were replaced." : " was published after all four files and their hashes were verified."}\n`);
     console.log(result.url);
-  } else throw new Error("Uso: node scripts/ci/release.mjs prepare | publish <diretório>");
+  } else throw new Error("Usage: node scripts/ci/release.mjs prepare | publish <directory>");
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

@@ -125,7 +125,7 @@ export default function App() {
     [hover.index, snapshots]
   );
 
-  // A PNG dropped at ~/.notchusage/icons/<id>.png replaces the drawn mark.
+  // A PNG dropped at ~/.cooldown-bar/icons/<id>.png replaces the drawn mark.
   // Served through Tauri's asset protocol, which tauri.conf.json scopes to that
   // one directory.
   const icons = useMemo<Record<string, ResolvedIcon | null>>(() => {
@@ -136,7 +136,7 @@ export default function App() {
     return out;
   }, [iconPaths]);
 
-  if (!layout || !colors) return ipcError ? <div className="startup-error" role="alert">NotchUsage: {ipcError}</div> : null;
+  if (!layout || !colors) return ipcError ? <div className="startup-error" role="alert">Cooldown Bar: {ipcError}</div> : null;
 
   const leftEdge = (motion?.edge ?? layout.edge) === "left";
   const paused = motion != null && motion.phase !== "docked";

@@ -5,10 +5,10 @@ import { pathToFileURL } from "node:url";
 // Stable versions only: these also work as CFBundleShortVersionString on macOS.
 export function parseVersion(value) {
   if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(value ?? "")) {
-    throw new Error(`Versão inválida: ${value}. Use MAJOR.MINOR.PATCH, sem prefixo v.`);
+    throw new Error(`Invalid version: ${value}. Use MAJOR.MINOR.PATCH, without a v prefix.`);
   }
   const parts = value.split(".").map(Number);
-  if (parts.some((n) => !Number.isSafeInteger(n))) throw new Error("Versão fora do limite numérico.");
+  if (parts.some((n) => !Number.isSafeInteger(n))) throw new Error("Version exceeds the safe numeric range.");
   return parts;
 }
 
@@ -28,7 +28,7 @@ export function nextVersion(current, requested) {
     next = parts.join(".");
   }
   parseVersion(next);
-  if (compareVersions(next, current) <= 0) throw new Error("A nova versão precisa ser maior que a atual.");
+  if (compareVersions(next, current) <= 0) throw new Error("The new version must be greater than the current version.");
   return next;
 }
 
@@ -40,7 +40,7 @@ export const versionFiles = [
 function rustVersionPattern(file) {
   return file.endsWith("Cargo.toml")
     ? /(\[package\][\s\S]*?\nversion\s*=\s*")([^"]+)(")/
-    : /(\[\[package\]\]\nname = "notchusage"\nversion = ")([^"]+)(")/;
+    : /(\[\[package\]\]\nname = "cooldown-bar"\nversion = ")([^"]+)(")/;
 }
 
 export function readVersions(root = process.cwd()) {
@@ -56,10 +56,10 @@ export function readVersions(root = process.cwd()) {
     }
   }
   for (const [file, version] of Object.entries(versions)) {
-    try { parseVersion(version); } catch { throw new Error(`Versão ausente ou inválida em ${file}.`); }
+    try { parseVersion(version); } catch { throw new Error(`Missing or invalid version in ${file}.`); }
   }
   if (new Set(Object.values(versions)).size !== 1) {
-    throw new Error(`Versões divergentes. Use npm run release:version -- <versão>.\n${JSON.stringify(versions, null, 2)}`);
+    throw new Error(`Manifest versions differ. Run npm run release:version -- <version>.\n${JSON.stringify(versions, null, 2)}`);
   }
   return versions["package.json"];
 }
@@ -84,8 +84,8 @@ export function setVersion(requested, root = process.cwd()) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const command = process.argv[2];
-    if (command === "check") console.log(`Versões sincronizadas: ${readVersions()}`);
-    else if (command === "set" && process.argv.length === 4) console.log(`Versão atualizada: ${setVersion(process.argv[3])}. Revise e faça commit dos cinco arquivos.`);
-    else throw new Error("Uso: node scripts/ci/version.mjs check | set <patch|minor|major|0.0.2>");
+    if (command === "check") console.log(`Manifest versions are synchronized: ${readVersions()}`);
+    else if (command === "set" && process.argv.length === 4) console.log(`Version updated: ${setVersion(process.argv[3])}. Review and commit the five files.`);
+    else throw new Error("Usage: node scripts/ci/version.mjs check | set <patch|minor|major|0.0.2>");
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

@@ -7,7 +7,7 @@
 //!   "secondary_percent": 11 }
 //! ```
 //!
-//! This is the only place NotchUsage runs something it did not write, and the
+//! This is the only place Cooldown Bar runs something it did not write, and the
 //! the user's command may itself contact external services. Built-in provider
 //! CLIs also use their own network connections.
 
