@@ -1,0 +1,208 @@
+.bubble-layer {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  /* Belt and braces: the panel already ignores mouse events outside the bar,
+     but this guarantees the DOM here never captures anything either. */
+  pointer-events: none;
+}
+
+.bubble-anchor {
+  position: absolute;
+  inset: 0;
+}
+
+.bubble {
+  position: absolute;
+  right: var(--bubble-tail-width);
+  width: var(--bubble-width);
+  min-height: 86px;
+  background: #000;
+  border-radius: var(--bubble-radius);
+  padding: 10px 9px 11px;
+  /* Shadow the body and curved tail together, without a rectangular seam. */
+  filter: drop-shadow(0 9px 10px rgba(0, 0, 0, 0.42));
+  animation: bubble-in 120ms ease-out;
+}
+
+/* Fade only. No slide, no bounce. */
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.bub-tail {
+  position: absolute;
+  right: calc(-1 * var(--bubble-tail-width));
+  fill: #000;
+  overflow: visible;
+}
+
+/* Bar on the left edge: bubble opens rightward, so the tail flips. */
+.bubble.is-left {
+  right: auto;
+  left: var(--bubble-tail-width);
+}
+
+.bubble.is-left .bub-tail {
+  right: auto;
+  left: calc(-1 * var(--bubble-tail-width));
+  transform: scaleX(-1);
+}
+
+.bub-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+
+.bub-mark {
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+}
+
+.bub-title {
+  font-size: 11px;
+  line-height: 15px;
+  font-weight: 400;
+  color: #fff;
+}
+
+.bub-plan {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #7d7d7d;
+  border: 1px solid #2e2e2e;
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+.bub-window + .bub-window {
+  margin-top: 7px;
+}
+
+.bub-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.bub-label {
+  font-size: 8px;
+  line-height: 11px;
+  color: #e8e8e8;
+}
+
+.bub-reset {
+  font-size: 8px;
+  line-height: 11px;
+  color: #808080;
+  white-space: nowrap;
+}
+
+.bub-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #2d2d2d;
+  overflow: hidden;
+}
+
+.bub-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 400ms ease-out;
+}
+
+.bub-used {
+  margin-top: 5px;
+  font-size: 8px;
+  line-height: 10px;
+  color: #e8e8e8;
+  font-variant-numeric: tabular-nums;
+}
+
+.bub-error,
+.bub-stale {
+  margin-top: 9px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #9e9e9e;
+}
+
+.bub-error {
+  color: #d98b6a;
+}
+
+/* ---------------------------------------------------------------------------
+   Context menu
+   --------------------------------------------------------------------------- */
+
+/* Covers the whole window so a click anywhere dismisses. Only present while the
+   menu is open, and only then does the panel accept clicks off the bar. */
+.menu-scrim {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.ctxmenu {
+  position: fixed;
+  min-width: 176px;
+  padding: 5px;
+  background: #1c1c1e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  /* Sit above the bar, which is the only other painted thing. */
+  z-index: 100;
+}
+
+.ctxmenu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #f2f2f2;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: default;
+}
+
+.ctxmenu-item:hover {
+  background: #3a6ff7;
+  color: #fff;
+}
+
+.ctxmenu-sep {
+  height: 1px;
+  margin: 5px 8px;
+  background: #333;
+}
+
+.bub-freshness { margin-top: 7px; color: #808080; font-size: 8px; line-height: 11px; }
+.bub-label { min-width: 0; overflow-wrap: anywhere; }
+.bub-error { overflow-wrap: anywhere; max-height: 92px; overflow: hidden; font-size: 9px; }
+.bub-stale { font-size: 9px; }
+.ctxmenu { max-width: calc(100vw - 12px); max-height: calc(100vh - 12px); overflow-y: auto; }
+.ctxmenu-error { max-width: 220px; padding: 6px 10px; color: #d98b6a; font-size: 11px; overflow-wrap: anywhere; }
+.menu-scrim { z-index: 99; }
+.startup-error { position: absolute; right: 6px; top: 130px; width: 190px; padding: 10px; background: #000; border-radius: 12px; font-size: 11px; }
+
+.ctxmenu-item:disabled { color: #747478; background: transparent; }
+.ctxmenu-status { padding: 6px 10px; font-size: 10px; color: #a2a2a8; }

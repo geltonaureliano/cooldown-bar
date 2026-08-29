@@ -1,0 +1,24 @@
+# Used by the GitHub generate-notes API. Labels are optional: the wildcard
+# catches unlabeled PRs, and the workflow also categorizes commit messages.
+changelog:
+  exclude:
+    labels: ["skip-changelog"]
+  categories:
+    - title: "⚠️ Mudanças que exigem atenção"
+      labels: ["breaking-change"]
+    - title: "🔒 Segurança"
+      labels: ["security"]
+    - title: "✨ Novidades"
+      labels: ["feature", "enhancement"]
+    - title: "🐛 Correções"
+      labels: ["bug", "fix"]
+    - title: "⚡ Desempenho"
+      labels: ["performance"]
+    - title: "📦 Dependências"
+      labels: ["dependencies"]
+    - title: "🛠 Build e automação"
+      labels: ["ci", "build"]
+    - title: "📖 Documentação"
+      labels: ["documentation"]
+    - title: "Outras mudanças"
+      labels: ["*"]

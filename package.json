@@ -1,0 +1,33 @@
+{
+  "name": "notchusage",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test:design": "node --test scripts/design.test.mjs",
+    "test": "node --test scripts/*.test.mjs && python3 -m unittest discover -s scripts -p \"test_*.py\"",
+    "release:check": "node scripts/ci/version.mjs check",
+    "release:version": "node scripts/ci/version.mjs set",
+    "test:release": "node --test scripts/release.test.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

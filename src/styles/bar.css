@@ -1,0 +1,97 @@
+.bar-layer {
+  position: relative;
+  height: 100%;
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bar {
+  position: relative;
+}
+
+.bar-items {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+}
+
+.ring-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: opacity 200ms ease-out;
+}
+
+/* Stale or missing data: never let it read as a confident zero. */
+.ring-item.is-dimmed {
+  opacity: 0.35;
+}
+
+.ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.ring svg {
+  display: block;
+}
+
+.ring-progress {
+  transition: stroke-dashoffset 400ms ease-out;
+}
+
+.ring-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.ring-label {
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #fff;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar { overflow: visible; cursor: grab; }
+.bar.is-floating { cursor: grab; }
+.bar-surface { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.bar-items { position: relative; pointer-events: none; }
+.orb-shadow { position: absolute; border-radius: 50%; background: #000; opacity: 0; box-shadow: 0 10px 24px #0005, 0 2px 5px #0004; pointer-events: none; }
+.motion-orb { position: absolute; border-radius: 50%; opacity: 0; pointer-events: none; overflow: hidden;
+  border: 1px solid #ffffff20; background: #030303; }
+.motion-orb.is-stale .orb-liquid { opacity: .58; filter: saturate(.68); }
+.orb-liquid { position: absolute; inset: 3px; overflow: hidden; border-radius: 50%; background: #050505;
+  transform: translateZ(0); transition: opacity 180ms ease-out; }
+.liquid-body { position: absolute; z-index: 1; left: -18%; width: 136%; height: 118%; top: calc(100% - var(--liquid-level));
+  transform: translateY(-5%); transform-origin: 50% 6%; border-radius: 44% 51% 12% 10%;
+  background: linear-gradient(160deg, var(--liquid-primary), color-mix(in srgb, var(--liquid-primary) 46%, #090909));
+  box-shadow: inset 0 8px 10px #ffffff16, 0 -1px 8px color-mix(in srgb, var(--liquid-primary) 58%, transparent);
+  animation: liquid-roll 3.2s linear infinite; animation-play-state: paused; }
+.bar.is-floating .liquid-body { animation-play-state: running; }
+.liquid-body::before, .liquid-body::after { content: ""; position: absolute; left: -8%; top: -8px; width: 72%; height: 18px;
+  border-radius: 50%; background: color-mix(in srgb, var(--liquid-primary) 88%, white 12%); opacity: .9; }
+.liquid-body::after { left: 44%; top: -5px; width: 66%; height: 14px; opacity: .7; background: var(--liquid-primary); }
+.liquid-glow { position: absolute; display: block; width: 24px; height: 24px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffffffa0, var(--liquid-secondary) 32%, transparent 70%);
+  opacity: .38; animation: liquid-drift 2.7s ease-in-out infinite alternate; }
+.liquid-glow.one { left: 16%; top: 7%; }
+.liquid-glow.two { right: 10%; top: 28%; width: 19px; height: 19px; opacity: .27; animation-delay: -1.4s; animation-direction: alternate-reverse; }
+.liquid-glass { position: absolute; z-index: 3; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 31% 20%, #ffffff30 0 5%, transparent 24%), linear-gradient(145deg, #ffffff10, transparent 45%);
+  box-shadow: inset 0 0 0 1px #ffffff14, inset 0 -7px 12px #0008; }
+@keyframes liquid-roll { to { transform: translateY(-5%) rotate(360deg); } }
+@keyframes liquid-drift { from { transform: translate(0, 1px) scale(.8); } to { transform: translate(15px, 9px) scale(1.2); } }
+@media (prefers-reduced-motion: reduce) {
+  .ring-item, .ring-progress, .bub-fill { transition: none; }
+  .bubble { animation: none; }
+  .liquid-body, .liquid-glow { animation: none; }
+}

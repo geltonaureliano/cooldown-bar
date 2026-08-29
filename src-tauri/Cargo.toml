@@ -1,0 +1,32 @@
+[package]
+name = "notchusage"
+version = "0.0.1"
+description = "Vertical rate-limit bar for AI CLI providers"
+authors = ["NotchUsage"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "notchusage_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["macos-private-api", "protocol-asset"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+libc = "0.2"
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
+objc2 = "0.6"
+block2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSScreen", "NSApplication", "NSWindow", "NSResponder", "NSView", "NSPanel", "NSMenu", "NSMenuItem", "NSEvent", "NSWorkspace", "NSRunningApplication", "NSGraphics"] }
+objc2-foundation = { version = "0.3", features = ["NSGeometry", "NSNotification", "NSString", "NSDictionary", "NSArray", "NSValue", "NSThread", "NSOperation", "NSObjCRuntime"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "unwind"
+strip = true
